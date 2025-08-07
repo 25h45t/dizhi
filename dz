@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>离线随机真实地址生成器（美化版）</title>
+  <style>
+    :root {
+      --primary-color: #007bff;
+      --bg-color: #f3f4f6;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+      --hover-bg: #e9ecef;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: var(--bg-color);
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      color: var(--text-color);
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .controls label { cursor: pointer; }
+    #count { width: 80px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+    #generate {
+      padding: 8px 16px;
+      background: var(--primary-color);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    #generate:hover { background: #0056b3; }
+    section {
+      background: var(--card-bg);
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    section h2 { margin-top: 0; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li {
+      padding: 8px 10px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    li:hover { background: var(--hover-bg); }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 4px;
+      opacity: 0;
+      animation: fadeInOut 2s forwards;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; }
+      10%, 90% { opacity: 0.9; }
+      100% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>离线随机真实地址生成器（美化版）</h1>
+    <div class="controls">
+      <label><input type="checkbox" value="us" checked> 美国</label>
+      <label><input type="checkbox" value="uk" checked> 英国</label>
+      <label><input type="checkbox" value="de" checked> 德国</label>
+      <label><input type="checkbox" value="pl" checked> 波兰</label>
+      <label><input type="checkbox" value="br" checked> 巴西</label>
+      <label><input type="checkbox" value="ar" checked> 阿根廷</label>
+      <label><input type="checkbox" value="in" checked> 印度</label>
+      <label><input type="checkbox" value="ng" checked> 尼日利亚</label>
+      <label>数量：<input type="number" id="count" value="10" min="1" max="1000"></label>
+      <button id="generate">生成地址</button>
+    </div>
+    <div id="results"></div>
+  </div>
+  <script>
+    const addressData = {
+      us: {
+        streets: ["Main St","Elm St","Oak Ave","Pine Rd","Maple Dr","Cedar Ln","Washington Blvd","Lakeview Terrace","Sunset Blvd","Broadway","Market St","Chestnut St","Walnut St","2nd Ave","3rd St","Park Ave","Hillcrest Rd","River Rd","Meadow Ln","Forest Dr"],
+        cities: [
+          { city: "New York", state: "NY", zipList: ["10001","10002","10003","10004","10005"] },
+          { city: "Los Angeles", state: "CA", zipList: ["90001","90002","90003","90004","90005"] },
+          { city: "Chicago", state: "IL", zipList: ["60601","60602","60603","60604","60605"] },
+          { city: "Houston", state: "TX", zipList: ["77001","77002","77003","77004","77005"] },
+          { city: "Phoenix", state: "AZ", zipList: ["85001","85002","85003","85004","85005"] },
+          { city: "Philadelphia", state: "PA", zipList: ["19019","19092","19102","19103","19104"] },
+          { city: "San Antonio", state: "TX", zipList: ["78201","78202","78203","78204","78205"] },
+          { city: "San Diego", state: "CA", zipList: ["92101","92102","92103","92104","92105"] },
+          { city: "Dallas", state: "TX", zipList: ["75201","75202","75203","75204","75205"] },
+          { city: "San Jose", state: "CA", zipList: ["95101","95102","95103","95104","95105"] }
+        ]
+      },
+      uk: {
+        streets: ["High Street","Station Road","Church Lane","Mill Road","Victoria Street","Church Street","London Road","Green Lane","Park Road","Queensway","Bridge Street","Albert Road","King Street","Queen Street","George Street","Park Avenue","The Drive","Russell Road","Cedar Road","East Street"],
+        cities: [
+          { city: "London", zipList: ["SW1A 1AA","EC1A 1BB","W1A 0AX","NW1 5DB","E1 6AN"] },
+          { city: "Manchester", zipList: ["M1 1AE","M2 5ZW","M3 2QS","M4 4EW","M5 4DN"] },
+          { city: "Birmingham", zipList: ["B1 1AA","B2 4QA","B3 1TN","B4 6FY","B5 5GS"] },
+          { city: "Leeds", zipList: ["LS1 1UR","LS2 7PQ","LS3 1AA","LS4 2BW","LS6 1NJ"] },
+          { city: "Glasgow", zipList: ["G1 1AA","G2 3LX","G3 7XY","G4 0AA","G5 9BW"] },
+          { city: "Cambridge", zipList: ["CB1 1AA","CB1 2AS","CB2 1PB","CB3 0AQ","CB4 1EY"] },
+          { city: "Oxford", zipList: ["OX1 1DP","OX1 2JD","OX2 6UD","OX3 0AG","OX4 2AB"] },
+          { city: "Bristol", zipList: ["BS1 1AA","BS1 4ST","BS2 0SP","BS3 1DL","BS4 3RR"] },
+          { city: "Liverpool", zipList: ["L1 8JQ","L2 3QE","L3 9GG","L6 4BL","L8 7LP"] },
+          { city: "Newcastle", zipList: ["NE1 1AD","NE2 4AX","NE3 4JB","NE4 5DN","NE5 3AB"] }
+        ]
+      },
+      de: {
+        streets: ["Hauptstraße","Bahnhofstraße","Schillerstraße","Gartenstraße","Lindenstraße","Mozartstraße","Goethestraße","Kirchweg","Schulstraße","Musterweg","Bergstraße","Bahnhofweg","Ringstraße","Waldweg","Hofstraße","Marktstraße","Dorfstraße","Rathausplatz","Friedrichstraße","Rosenweg"],
+        cities: [
+          { city: "Berlin", zipList: ["10115","10117","10119","10178","10243"] },
+          { city: "Hamburg", zipList: ["20095","20097","20099","20354","20457"] },
+          { city: "München", zipList: ["80331","80333","80335","80336","80337"] },
+          { city: "Köln", zipList: ["50667","50668","50670","50672","50674"] },
+          { city: "Frankfurt", zipList: ["60311","60313","60314","60316","60318"] },
+          { city: "Düsseldorf", zipList: ["40210","40211","40212","40213","40215"] },
+          { city: "Stuttgart", zipList: ["70173","70174","70176","70178","70180"] },
+          { city: "Dortmund", zipList: ["44135","44137","44139","44141","44143"] },
+          { city: "Essen", zipList: ["45127","45128","45130","45131","45133"] },
+          { city: "Leipzig", zipList: ["04109","04129","04155","04275","04315"] }
+        ]
+      },
+      pl: {
+        streets: ["ul. Kolejowa","ul. Warszawska","ul. Krakowska","ul. Główna","ul. Kościuszki","ul. Wrocławska","ul. Piłsudskiego","ul. Mickiewicza","ul. Lipowa","ul. Słoneczna","ul. Szkolna","ul. Leśna","ul. Sienkiewicza","ul. Reymonta","ul. Piastowska","ul. Nowowiejska","ul. Średnia","ul. Wilcza","ul. Skłodowskiej","ul. Polna"],
+        cities: [
+          { city: "Warszawa", zipList: ["00-001","00-002","00-003","00-004","00-005"] },
+          { city: "Kraków", zipList: ["30-001","30-002","30-003","30-004","30-005"] },
+          { city: "Łódź", zipList: ["90-001","90-002","90-003","90-004","90-005"] },
+          { city: "Wrocław", zipList: ["50-001","50-002","50-003","50-004","50-005"] },
+          { city: "Poznań", zipList: ["60-001","60-002","60-003","60-004","60-005"] },
+          { city: "Gdańsk", zipList: ["80-001","80-002","80-003","80-004","80-005"] },
+          { city: "Szczecin", zipList: ["70-001","70-002","70-003","70-004","70-005"] },
+          { city: "Białystok", zipList: ["15-001","15-002","15-003","15-004","15-005"] },
+          { city: "Lublin", zipList: ["20-001","20-002","20-003","20-004","20-005"] },
+          { city: "Katowice", zipList: ["40-001","40-002","40-003","40-004","40-005"] }
+        ]
+      },
+      br: {
+        streets: ["Avenida Paulista","Rua XV de Novembro","Rua da Consolidação","Rua Oscar Freire","Avenida Rio Branco","Rua Augusta","Avenida Brasil","Rua Haddock Lobo","Avenida Sete de Setembro","Rua Visconde de Pirajá"],
+        cities: [
+          { city: "São Paulo", zipList: ["01000-000","01100-000","01200-000","01300-000","01400-000"] },
+          { city: "Rio de Janeiro", zipList: ["20000-000","20200-000","20300-000","20400-000","20500-000"] },
+          { city: "Brasília", zipList: ["70000-000","70100-000","70200-000","70300-000","70400-000"] },
+          { city: "Salvador", zipList: ["40000-000","40100-000","40200-000","40300-000","40400-000"] },
+          { city: "Fortaleza", zipList: ["60000-000","60100-000","60200-000","60300-000","60400-000"] }
+        ]
+      },
+      ar: {
+        streets: ["Calle Florida","Avenida Corrientes","Calle Reconquista","Avenida 9 de Julio","Calle San Martín","Calle Belgrano","Avenida Santa Fe","Calle Lavalle","Calle Rivadavia","Avenida de Mayo"],
+        cities: [
+          { city: "Buenos Aires", zipList: ["C1000","C1001","C1002","C1003","C1004"] },
+          { city: "Córdoba", zipList: ["X5000","X5001","X5002","X5003","X5004"] },
+          { city: "Rosario", zipList: ["S2000","S2001","S2002","S2003","S2004"] },
+          { city: "Mendoza", zipList: ["M5500","M5501","M5502","M5503","M5504"] },
+          { city: "La Plata", zipList: ["B1900","B1901","B1902","B1903","B1904"] }
+        ]
+      },
+      in: {
+        streets: ["MG Road","Station Road","Park Street","Camac Street","Janpath","Brigade Road","Linking Road","Anna Salai","FC Road","South Extension"],
+        cities: [
+          { city: "Mumbai",      zipList: ["400001","400002","400003","400004","400005"] },
+          { city: "Delhi",       zipList: ["110001","110002","110003","110004","110005"] },
+          { city: "Bengaluru",   zipList: ["560001","560002","560003","560004","560005"] },
+          { city: "Kolkata",     zipList: ["700001","700002","700003","700004","700005"] },
+          { city: "Chennai",     zipList: ["600001","600002","600003","600004","600005"] }
+        ]
+      },
+      ng: {
+        streets: ["Adeniran Ogunsanya Road","Awolowo Road","Kano Road","Ahmadu Bello Way","Gowon Estate Road","Broad Street","Ikorodu Road","Lawrence Road","Michael Otedola Avenue","Force Road"],
+        cities: [
+          { city: "Lagos",          zipList: ["100001","100002","100003","100004","100005"] },
+          { city: "Abuja",          zipList: ["900001","900002","900003","900004","900005"] },
+          { city: "Kano",           zipList: ["700001","700002","700003","700004","700005"] },
+          { city: "Ibadan",         zipList: ["200001","200002","200003","200004","200005"] },
+          { city: "Port Harcourt",  zipList: ["500001","500002","500003","500004","500005"] }
+        ]
+      }
+    };
+    const countryNames = { us: "USA", uk: "UK", de: "Germany", pl: "Poland", br: "Brazil", ar: "Argentina", in: "India", ng: "Nigeria" };
+    function randomItem(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+    function generateAddress(country) {
+      const data = addressData[country];
+      const num = Math.floor(Math.random()*9999)+1;
+      const street = randomItem(data.streets);
+      const cityObj = randomItem(data.cities);
+      const zip = randomItem(cityObj.zipList);
+      return country=== 'us' ? `${num} ${street}, ${cityObj.city}, ${cityObj.state} ${zip}, ${countryNames[country]}` : `${num} ${street}, ${cityObj.city}, ${zip}, ${countryNames[country]}`;
+    }
+    function showToast(msg) {
+      const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t);
+      setTimeout(()=>t.remove(),2000);
+    }
+    document.getElementById('generate').addEventListener('click',()=>{
+      const sel=Array.from(document.querySelectorAll('input[type=checkbox]:checked')).map(cb=>cb.value);
+      const cnt=parseInt(document.getElementById('count').value,10)||0;
+      const res=document.getElementById('results'); res.innerHTML='';
+      sel.forEach(c=>{
+        const sec=document.createElement('section');
+        const h=document.createElement('h2');h.textContent=countryNames[c]; sec.appendChild(h);
+        const ul=document.createElement('ul');
+        for(let i=0;i<cnt;i++){
+          const li=document.createElement('li'); const addr=generateAddress(c);
+          li.textContent=addr; li.title='点击复制';
+          li.addEventListener('click',()=>navigator.clipboard.writeText(addr).then(()=>showToast('已复制：'+addr)));
+          ul.appendChild(li);
+        }
+        sec.appendChild(ul); res.appendChild(sec);
+      });  
+    });
+  </script>
+</body>
+</html>
